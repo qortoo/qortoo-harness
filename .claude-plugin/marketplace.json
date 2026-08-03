@@ -1,0 +1,19 @@
+{
+  "name": "qortoo-harness",
+  "owner": {
+    "name": "hgroh"
+  },
+  "description": "Shared Claude Code agents/commands for the qortoo project family",
+  "plugins": [
+    {
+      "name": "qortoo-shared",
+      "source": "./plugins/qortoo-shared",
+      "description": "Language-agnostic qortoo conventions: commit messages, PR creation, concept docs"
+    },
+    {
+      "name": "qortoo-rust",
+      "source": "./plugins/qortoo-rust",
+      "description": "Rust-specific qortoo tooling: code review, API design discussion, pre-commit checks, doc generation"
+    }
+  ]
+}
