@@ -1,6 +1,6 @@
 # qortoo — Shared Conventions
 
-This file is the canonical source for conventions shared across every `qortoo-*` repository (Rust, Go, or otherwise). Each repo keeps its own root `AGENTS.md` / `CLAUDE.md` with these sections copied in verbatim, plus repo-specific content appended. When this file changes, copy the updated section into each consuming repo — there is no automatic sync (tools like Codex don't follow imports into subdirectories).
+This file is the canonical source for conventions shared across every `qortoo-*` repository (Rust, Go, or otherwise). Each repo keeps its own root `AGENTS.md` — the only Claude/Codex-adjacent file allowed outside this repo — with these sections copied in verbatim, plus repo-specific content appended. No repo other than this one should have a `CLAUDE.md` or its own `.claude/settings.json`; see [Principle: this is the only repo with Claude/Codex tooling](README.md#principle-this-is-the-only-repo-with-claudecodex-tooling) in the README. When this file changes, copy the updated section into each consuming repo — there is no automatic sync (tools like Codex don't follow imports into subdirectories).
 
 The `qortoo-shared` Claude Code plugin (`plugins/qortoo-shared/`) in this repo provides the actual commit/PR/doc-scaffolding automation described below.
 
