@@ -31,7 +31,7 @@ description: Propose a commit message for the current changes, following this pr
 | 💄 | `refactor` | Code restructuring without behavior change |
 | 🧩 | `chore` | Tooling, dependencies, config, CI config |
 | 💿 | `CI/CD` | GitHub Actions workflows, CI/CD pipeline changes |
-| 📜 | `docs` | Documentation under `./docs/`, README, CLAUDE.md |
+| 📜 | `docs` | Documentation under `./docs/`, README, AGENTS.md |
 | 🧪 | `test` | Tests only, no production code change |
 | ⚡ | `perf` | Performance improvement |
 
