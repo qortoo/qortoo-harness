@@ -147,7 +147,7 @@ What NOT to save:
 Explicit user requests:
 - When the user asks you to remember something across sessions (e.g., "always use bun", "never auto-commit"), save it — no need to wait for multiple interactions
 - When the user asks to forget or stop remembering something, find and remove the relevant entries from your memory files
-- Since this memory is project-scope and shared with your team via version control, tailor your memories to this project
+- This memory is project-scope but **not** shared with the team via version control (`.claude/agent-memory/` is gitignored) — it's your own local working notes, tailored to this project but private to this machine
 
 ## MEMORY.md
 

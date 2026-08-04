@@ -9,6 +9,7 @@ The `qortoo-shared` Claude Code plugin (`plugins/qortoo-shared/`) in this repo p
 - All code comments and documentation must be written in **English**.
 - Favor SOLID principles, especially Single Responsibility (SRP) and Open/Closed (OCP), where practical. Check for these during review.
 - Structure important concepts under `./docs/` so they're easy to follow from Markdown and diagrams grounded in the actual code. Use the `/qortoo-shared:doc-new` command to scaffold a new concept document.
+- Individual plans, task lists, and working notes belong in the gitignored `.local/` at the repo root — never commit them or propose committing them. Claude Code's project-scoped agent memory (`.claude/agent-memory/`) is likewise personal and gitignored, not shared team knowledge.
 
 ## Commit & Pull Request Guidelines
 
