@@ -65,7 +65,7 @@ Individual developer notes, plans, and in-progress task lists are not shared via
 .local/
 ```
 
-- `.local/` — free-form personal workspace (plans, task lists, working notes). Not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
+- `.local/` — free-form personal workspace (plans, task lists, working notes). Plan documents under `.local/plans/` use the language of the current user session; other content remains free-form. The workspace is not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
 - `.claude/` — now holds only local, gitignored state: `settings.local.json` (personal tool permissions) and `agent-memory/` (Claude Code's project-scoped agent memory, e.g. the `qortoo-api-designer` agent's persistent notes — kept local rather than shared, so its content isn't subject to review before it lands). Nothing under `.claude/` is tracked in a qortoo-* repo other than this one.
 
 ## Adding a new language tier
