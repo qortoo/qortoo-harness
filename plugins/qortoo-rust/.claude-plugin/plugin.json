@@ -2,6 +2,6 @@
   "name": "qortoo-rust",
   "description": "Rust-specific qortoo tooling: code review, API design discussion, pre-commit checks, doc generation",
   "author": {
-    "name": "hgroh"
+    "name": "knowhunger"
   }
 }
