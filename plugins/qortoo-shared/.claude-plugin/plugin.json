@@ -1,0 +1,7 @@
+{
+  "name": "qortoo-shared",
+  "description": "Language-agnostic qortoo conventions: commit messages, PR creation, concept docs",
+  "author": {
+    "name": "knowhunger"
+  }
+}
