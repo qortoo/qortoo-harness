@@ -25,3 +25,10 @@ The `qortoo-shared` Claude Code plugin (`plugins/qortoo-shared/`) in this repo p
 - Do not add development-history or migration notes for intermediate, unreleased changes (for example, that a field or label previously existed and was removed) unless the user explicitly asks for that history.
 - Add compatibility or migration guidance only for behavior that has appeared in a released version.
 - Concept docs describe the system as it is now and the rule that holds it in place — write principles, not history. Leave out what was tried before, what was removed, or what was "learned the hard way"; git history already carries that.
+
+## Personal plan lifecycle
+
+- Keep active plan documents in the gitignored `.local/plans/` directory.
+- Before closing a plan, confirm that its checklist and external delivery state match reality. Keep it active if any acceptance condition remains, even when implementation is otherwise complete.
+- Mark a finished plan as complete, record its final outcome, and move it to the gitignored `.local/legacy/` directory. Completed plans are retained as personal history rather than deleted.
+- Do not commit files from either `.local/plans/` or `.local/legacy/`.
