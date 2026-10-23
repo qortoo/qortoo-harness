@@ -1,5 +1,38 @@
-.idea
-.vscode
-.cursor
-.claude
+# Personal and Local Workspace
 .local/
+manifest.local.toml
+*.local.*
+
+# Virtual Environments and Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# AI Agent Local State & Sessions
+.claude/
+.codex/sessions/
+
+# Editors and IDEs
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs and Temporary Files
+*.log
+*.tmp
