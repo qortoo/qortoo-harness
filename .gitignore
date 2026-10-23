@@ -2,6 +2,8 @@
 .local/
 manifest.local.toml
 *.local.*
+!*.example
+!*.example.*
 
 # Virtual Environments and Python
 .venv/

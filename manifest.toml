@@ -1,0 +1,44 @@
+# Qortoo Multi-Repository Manifest
+# Canonical catalog of managed repositories in the qortoo ecosystem.
+# Tracked in Git. For local developer overrides, use manifest.local.toml.
+
+[workspace]
+# Base directory where sibling repositories are located, relative to this harness root.
+root = ".."
+
+[repositories.qortoo-rs]
+path = "qortoo-rs"
+remote = "https://github.com/qortoo/qortoo-rs.git"
+role = "core-sdk"
+tier = "public"
+default_branch = "main"
+tools = ["cargo", "rustc", "make"]
+agents_md = "managed"
+
+[repositories.qortoo-go]
+path = "qortoo-go"
+remote = "https://github.com/qortoo/qortoo-go.git"
+role = "binding"
+tier = "public"
+default_branch = "main"
+tools = ["go", "make"]
+agents_md = "managed"
+
+[repositories.qortoo-bench]
+path = "qortoo-bench"
+remote = "https://github.com/qortoo/qortoo-bench.git"
+role = "benchmark"
+tier = "public"
+default_branch = "main"
+tools = ["cargo", "go", "python3", "make"]
+agents_md = "managed"
+
+[repositories.qortoo]
+path = "qortoo"
+remote = "https://github.com/qortoo/qortoo.git"
+role = "docs-portal"
+tier = "public"
+default_branch = "main"
+tools = ["node", "npm"]
+agents_md = "managed"
+
