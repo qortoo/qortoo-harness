@@ -8,39 +8,37 @@ This document defines the repository hygiene standards and resource isolation po
 
 ## 1. Worktree Isolation Policy
 
-### Strict External Path Convention
-
-Git worktrees must **never** be placed inside `qortoo-harness` or inside any individual product repository. All isolated development and verification worktrees must reside in the dedicated sibling directory:
+Follow the short [worktree workflow](worktree-lifecycle.md) using standard Git commands
+and existing `doctor` diagnostics.
+Worktrees belong under `../qortoo-worktrees/` relative to the harness, outside every
+repository checkout:
 
 ```text
 /path/to/workspace/
-├── qortoo-harness/                    # Control plane
-├── qortoo-rs/                         # Core SDK repository
-├── qortoo-go/                         # Go binding repository
-├── qortoo-bench/                      # Benchmark repository
-└── ../qortoo-worktrees/               # ⭐️ Isolated worktree staging directory
+├── qortoo-harness/
+├── qortoo-rs/
+├── qortoo-go/
+├── qortoo-bench/
+└── qortoo-worktrees/
     ├── qortoo-rs.feature-xyz/
-    └── qortoo-bench.ci-ubicloud/
+    └── qortoo-bench.runner-check/
 ```
 
 ### Rationale: Preventing Search Pollution and Token Explosion
 
-When worktrees are created inside a repository tree (e.g., `.local/worktrees/`), search and exploration tools (`grep`, `find`, ripgrep, agent file indexing) traverse multiple complete copies of the codebase. This causes:
-1. **Severe Token Waste**: Single search requests ingest tens or hundreds of thousands of redundant tokens into the model context.
-2. **Obsolete Code Hallucination**: Agents inadvertently read outdated implementations from legacy worktrees instead of the active branch, producing incorrect recommendations and regressions.
+Worktrees inside a repository can expose duplicate or outdated code to searches and
+agent indexing. This increases unnecessary context and token use, and can lead an
+agent to reason from the wrong checkout. External placement helps keep searches
+focused on the intended codebase.
 
-### Worktree Teardown SOP (Standard Operating Procedure)
+Exposure depends on the search root, flags, and tool ignore support. Ignore rules
+provide an additional safeguard; a fixed token cost or reduction is not assumed.
 
-Every worktree is ephemeral. Once a task reaches delivery (PR created and merged), the worktree must be retired:
+### Before Removal
 
-1. **Verify Cleanliness**: Run `git status --porcelain` inside the worktree to ensure no uncommitted or untracked changes remain.
-2. **Verify Delivery**: Confirm that the branch commits have been pushed and merged into `origin/main` (or a preserved PR branch).
-3. **Remove Worktree**: From the parent repository, run:
-   ```sh
-   git worktree remove /path/to/qortoo-worktrees/<worktree-name>
-   git branch -d <branch-name>
-   git worktree prune
-   ```
+Before removing a worktree, confirm its purpose, local files (including ignored
+files), and task delivery. Preserve anything uncertain. Worktree removal and branch
+deletion are separate actions; the workflow describes the manual checks.
 
 ---
 
@@ -53,11 +51,10 @@ All personal, temporary, and diagnostic files reside exclusively in the gitignor
 ```text
 qortoo-harness/.local/
 ├── plans/              # Active task plans (Active only; read by agents)
-├── legacy/             # Completed task plans (Archived personal history)
+├── archive/            # Completed plans (personal history)
 ├── logs/               # Active diagnostic logs
 │   └── archive/        # Rotated historical test/benchmark logs
-├── validations/        # Consolidated verification and review reports
-└── worktrees/          # Worktree metadata JSON only (no source checkouts)
+└── validations/        # Consolidated verification and review reports
 ```
 
 ### Search Shielding (`.gitignore`, `.claudeignore`, `.ignore`)
@@ -72,7 +69,8 @@ Heavy output files, raw telemetry dumps, and virtual environments must be shield
 
 ### High-Density Imperative Policy
 
-Shared conventions in `AGENTS.md` are injected into the agent's system prompt on **every session turn**. Every additional line imposes a recurring token fee on every prompt across every project repository.
+Shared conventions in `AGENTS.md` occupy instruction context when loaded by an agent.
+Loading and prompt-caching behavior vary by tool; keep the common block concise.
 
 - **Token Ceiling**: The shared conventions block must not exceed **800–1,000 tokens** (approximately 60–80 concise lines).
 - **Actionable Constraints Only**: Include only concrete, non-obvious operational rules (commit format, English documentation requirement, SOLID emphasis, plan lifecycle).
@@ -97,13 +95,13 @@ Do not commit temporary conversation transcripts, IDE scratch files, or model ca
 ## 5. Development Cycle Checklist (Hygiene SOP)
 
 ### When Starting a Task
-- [ ] Base repositories are on `main` and clean (`git status`).
+- [ ] Inspect the current branch and changes; preserve existing work without automatically switching or resetting repositories.
 - [ ] Active plan document exists under `qortoo-harness/.local/plans/`.
 - [ ] If isolation is required, spawn the worktree under `../qortoo-worktrees/`.
 
 ### When Completing a Task
 - [ ] PR is created, CI passes, and changes are squash-merged into `main`.
-- [ ] Associated worktree is removed via `git worktree remove` and pruned.
+- [ ] Review any task worktree using the [removal checklist](worktree-lifecycle.md#before-removal); remove it only when safe and authorized.
 - [ ] Diagnostic logs are moved to `.local/logs/archive/`.
-- [ ] Plan document is updated with final outcomes and moved to `.local/legacy/`.
+- [ ] Plan document is updated with final outcomes and moved to `.local/archive/`.
 - [ ] Confirm clean workspace: `git status` shows no untracked clutter.

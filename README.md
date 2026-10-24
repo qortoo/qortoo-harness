@@ -43,6 +43,9 @@ excludes internal entries from the merged catalog, and `--dry-run` previews with
 creating directories or contacting remotes.
 See [CLI contracts](docs/harness-cli.md) for scope, statuses, exit codes, and limits.
 
+Use standard Git commands and the short [worktree workflow](docs/worktree-lifecycle.md)
+for creation and removal. Existing `doctor` diagnostics support manual checks.
+
 ## Shared policy synchronization
 
 Edit only [`policies/shared-conventions.md`](policies/shared-conventions.md) for shared rules.
@@ -166,7 +169,7 @@ Individual developer notes, plans, and in-progress task lists are not shared via
 .local/
 ```
 
-- `.local/` — free-form personal workspace (plans, task lists, working notes). Active plan documents live under `.local/plans/`; after their checklist and external delivery are complete, mark them complete and move them to `.local/legacy/`. Plan documents use the language of the current user session, while other content remains free-form. The workspace is not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
+- `.local/` — free-form personal workspace (plans, task lists, working notes). Active plan documents live under `.local/plans/`; after their checklist and external delivery are complete, mark them complete and move them to `.local/archive/`. Plan documents use the language of the current user session, while other content remains free-form. The workspace is not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
 - `.claude/` — now holds only local, gitignored state: `settings.local.json` (personal tool permissions) and `agent-memory/` (Claude Code's project-scoped agent memory, e.g. the `qortoo-api-designer` agent's persistent notes — kept local rather than shared, so its content isn't subject to review before it lands). Nothing under `.claude/` is tracked in a qortoo-* repo other than this one.
 
 ## Adding a new language tier

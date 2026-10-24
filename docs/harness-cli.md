@@ -26,8 +26,8 @@ identifies both scopes.
 Git probes disable optional index locks and filesystem monitor use. Doctor does not
 fetch, stage changes, modify refs, prune registrations, or generate files. External
 version probes have a ten-second timeout. This is a bounded local check; tool installation,
-PR/CI/merge/publication checks, recursive artifact scans, task-metadata lifecycle
-validation, and log-retention decisions are outside its scope. Worktree warnings are
+PR/CI/merge/publication checks, recursive artifact scans, and log-retention decisions
+are outside its scope. Worktree warnings are
 observations, not authorization or proof that a checkout is safe to delete.
 
 ## Sync
@@ -114,7 +114,8 @@ invalid selected targets, or generation/application errors, and 0 on successful
 application or preview. Bootstrap exits 1 for blocked targets or clone failures, and
 0 after successful preflight/preview or completion; usage/configuration errors exit 2.
 A zero exit status never proves live delivery or worktree
-cleanup eligibility.
+cleanup eligibility. Use standard Git commands and the [worktree workflow](worktree-lifecycle.md)
+for manual creation and removal. The harness has no worktree or `clean` command.
 
 ## Code map
 

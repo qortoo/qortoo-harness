@@ -30,7 +30,7 @@ language; write shared definitions, code comments, and tracked documentation in 
 - Preserve unrelated work. Keep personal plans and working notes under
   qortoo-harness/.local/; use the session language for plans in .local/plans/.
   Update any plan used for the task with actual validation and delivery state.
-  Archive completed plans in .local/legacy/ only after all acceptance conditions pass.
+  Archive completed plans in .local/archive/ only after all acceptance conditions pass.
 - Follow shared SOLID, documentation, commit, and PR conventions. Describe current
   intended behavior in tracked docs, without unreleased migration history.
 
