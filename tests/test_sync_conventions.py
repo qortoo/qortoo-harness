@@ -13,22 +13,26 @@ BEGIN = '<!-- BEGIN QORTOO-HARNESS MANAGED BLOCK -->'
 END = '<!-- END QORTOO-HARNESS MANAGED BLOCK -->'
 
 
+@unittest.skipIf(sys.version_info < (3, 11), "Manifest tools require Python 3.11+")
 class PolicyDeploymentTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve() / "harness"
+        self.root.mkdir()
         (self.root / 'scripts').mkdir()
-        shutil.copyfile(ROOT / 'scripts/sync_conventions.py', self.root / 'scripts/sync_conventions.py')
+        for name in ['sync_conventions.py', 'harness_manifest.py']:
+            shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         (self.root / 'policies').mkdir()
         self.source = self.root / 'policies/shared-conventions.md'
         self.source.write_text('## Shared Rules\n\n- Original rule.\n')
         (self.root / 'manifest.toml').write_text(
-            '[workspace]\nroot = "."\n[repositories.product]\n'
-            'path = "product"\nagents_md = "managed"\n'
+            '[workspace]\nroot = ".."\n[repositories.product]\n'
+            'path = "product"\nrole = "sdk"\ntier = "public"\n'
+            'remote = "https://example.com/team/product.git"\nagents_md = "managed"\n'
         )
-        (self.root / 'product').mkdir()
-        self.targets = [self.root / 'AGENTS.md', self.root / 'product/AGENTS.md']
+        (self.root.parent / 'product').mkdir()
+        self.targets = [self.root / 'AGENTS.md', self.root.parent / 'product/AGENTS.md']
         for target in self.targets:
             target.write_text(f'# {target.parent.name}\n\n{BEGIN}\nstale\n{END}\n\n## Local\n\nKeep this rule.\n')
 
@@ -85,7 +89,7 @@ class PolicyDeploymentTests(unittest.TestCase):
         self.targets[0].write_text(self.targets[0].read_text().replace('Original rule.', 'Local drift.'))
         self.assertEqual(self.run_sync('--check', '--repo', 'qortoo-harness').returncode, 1)
 
-    def test_workspace_overlay_cannot_redirect_harness_deployment(self):
+    def test_reserved_harness_overlay_is_rejected_without_writes(self):
         other = self.root / 'other-workspace'
         other.mkdir()
         decoy = other / 'AGENTS.md'
@@ -95,8 +99,9 @@ class PolicyDeploymentTests(unittest.TestCase):
             '[repositories.qortoo-harness]\npath = "."\nagents_md = "managed"\n'
         )
         result = self.run_sync('--repo', 'qortoo-harness')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Original rule.', self.targets[0].read_text())
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('reserved repository name', result.stderr)
+        self.assertNotIn('Original rule.', self.targets[0].read_text())
         self.assertEqual(decoy.read_text(), 'Do not modify this checkout.\n')
 
     def test_unmarked_bench_requires_explicit_enrollment_and_keeps_all_text(self):
@@ -175,6 +180,23 @@ class PolicyDeploymentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn('symlink', result.stderr)
         self.assertEqual(snapshot, [p.read_bytes() for p in self.targets])
+
+    def test_invalid_manifest_prevents_all_deployment_writes(self):
+        snapshot = [p.read_bytes() for p in self.targets]
+        manifest = self.root / 'manifest.toml'
+        original = manifest.read_text()
+        for invalid in [
+            original.replace('path = "product"', 'path = "harness"'),
+            original.replace('tier = "public"', 'tier = false'),
+            original + '\nunknown = "typo"\n',
+            original.replace('[workspace]', '[workspace'),
+        ]:
+            with self.subTest(invalid=invalid):
+                manifest.write_text(invalid)
+                result = self.run_sync()
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('Cannot load manifest', result.stderr)
+                self.assertEqual(snapshot, [p.read_bytes() for p in self.targets])
 
 
 if __name__ == '__main__':

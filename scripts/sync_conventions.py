@@ -14,6 +14,8 @@ import difflib
 import sys
 from pathlib import Path
 
+from harness_manifest import ManifestError, Repository, load_manifest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 BEGIN_MARKER = "<!-- BEGIN QORTOO-HARNESS MANAGED BLOCK -->"
@@ -30,83 +32,6 @@ def get_managed_block() -> str:
     if not conventions or BEGIN_MARKER in conventions or END_MARKER in conventions:
         raise ValueError(f"Expected nonempty policy text without managed markers: {source_path}")
     return f"{BEGIN_MARKER}\n{HEADER_NOTE}\n{conventions}\n{END_MARKER}"
-
-
-def parse_simple_toml(content: str) -> dict:
-    """Lightweight, zero-dependency TOML parser for basic sections and string/list values."""
-    data = {}
-    current_section = data
-    section_map = {}
-
-    for line in content.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-
-        # Section header e.g. [workspace] or [repositories.qortoo-rs]
-        if line.startswith("[") and line.endswith("]"):
-            section_name = line[1:-1].strip()
-            parts = section_name.split(".")
-            target = data
-            for part in parts:
-                if part not in target:
-                    target[part] = {}
-                target = target[part]
-            current_section = target
-            continue
-
-        # Key-value pair e.g. path = "qortoo-rs" or tools = ["cargo", "rustc"]
-        if "=" in line:
-            key, val = line.split("=", 1)
-            key = key.strip()
-            val = val.strip()
-
-            # String
-            if val.startswith('"') and val.endswith('"'):
-                current_section[key] = val[1:-1]
-            # List
-            elif val.startswith("[") and val.endswith("]"):
-                items = []
-                raw_items = val[1:-1].split(",")
-                for item in raw_items:
-                    item = item.strip()
-                    if item.startswith('"') and item.endswith('"'):
-                        items.append(item[1:-1])
-                current_section[key] = items
-            # Boolean
-            elif val.lower() == "true":
-                current_section[key] = True
-            elif val.lower() == "false":
-                current_section[key] = False
-            else:
-                current_section[key] = val
-
-    return data
-
-
-def load_manifest() -> dict:
-    """Load canonical manifest.toml and merge optional local overlay manifest.local.toml."""
-    manifest_path = ROOT / "manifest.toml"
-    if not manifest_path.exists():
-        raise FileNotFoundError(f"Manifest not found: {manifest_path}")
-
-    config = parse_simple_toml(manifest_path.read_text(encoding="utf-8"))
-
-    local_path = ROOT / "manifest.local.toml"
-    if local_path.exists():
-        local_config = parse_simple_toml(local_path.read_text(encoding="utf-8"))
-        # Merge workspace
-        if "workspace" in local_config:
-            config.setdefault("workspace", {}).update(local_config["workspace"])
-        # Merge repositories
-        if "repositories" in local_config:
-            for repo, props in local_config["repositories"].items():
-                if repo in config.get("repositories", {}):
-                    config["repositories"][repo].update(props)
-                else:
-                    config.setdefault("repositories", {})[repo] = props
-
-    return config
 
 
 def update_agents_md(existing_content: str, repo_name: str, initialize: bool = False) -> str:
@@ -172,11 +97,15 @@ def main():
     except (OSError, ValueError) as error:
         parser.exit(1, f"Cannot load shared conventions: {error}\n")
 
-    manifest = load_manifest()
-    workspace_root = ROOT / manifest.get("workspace", {}).get("root", "..")
-    repositories = dict(manifest.get("repositories", {}))
+    try:
+        manifest = load_manifest(ROOT)
+    except ManifestError as error:
+        parser.exit(1, f"Cannot load manifest: {error}\n")
+    repositories = dict(manifest.repositories)
     # The harness is always a deployment target, independent of workspace overlays.
-    repositories["qortoo-harness"] = {"path": str(ROOT), "agents_md": "managed"}
+    repositories["qortoo-harness"] = Repository(
+        "qortoo-harness", ROOT, None, "control-plane", "public", "main", (), "managed"
+    )
     if args.repo and args.repo not in repositories:
         parser.error(f"Unknown repository: {args.repo}")
 
@@ -186,9 +115,9 @@ def main():
     for repo_name, repo_meta in sorted(repositories.items()):
         if args.repo and repo_name != args.repo:
             continue
-        if repo_meta.get("agents_md") != "managed":
+        if repo_meta.agents_md != "managed":
             continue
-        repo_dir = (workspace_root / repo_meta.get("path", repo_name)).resolve()
+        repo_dir = repo_meta.path
         agents_md_path = repo_dir / "AGENTS.md"
         if not repo_dir.exists():
             print(f"Skipping {repo_name}: directory does not exist ({repo_dir})")

@@ -12,6 +12,7 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 
 - `policies/shared-conventions.md` — canonical shared policy text. `scripts/sync_conventions.py` deploys it into managed blocks in this harness's `AGENTS.md` and the manifest's managed repositories.
 - `AGENTS.md` — generated shared block plus harness-specific guidance.
+- `manifest.toml` — public repository catalog; see [manifest contracts](docs/repository-manifest.md) for schema, local overlays, path resolution, and remote identity.
 - `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
 - `.codex/agents/` — generated project-scoped Codex agent definitions.
 - `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
@@ -25,12 +26,12 @@ It deploys the same marked block into the harness and every repository configure
 `agents_md = "managed"` in `manifest.toml` (including local overlay entries).
 Repository-specific instructions belong outside that block.
 
-From the harness root, with Python 3.9 or newer:
+From the harness root, with Python 3.11 or newer (examples use `python3.12`):
 
 ```sh
-python3 scripts/sync_conventions.py --diff
-python3 scripts/sync_conventions.py
-python3 scripts/sync_conventions.py --check
+python3.12 scripts/sync_conventions.py --diff
+python3.12 scripts/sync_conventions.py
+python3.12 scripts/sync_conventions.py --check
 ```
 
 `--diff` previews without writing; `--check` exits with status 1 if a selected deployment
@@ -49,8 +50,8 @@ including existing line endings and the final newline state.
 To enroll a missing or unmarked document, select that repository explicitly and preview:
 
 ```sh
-python3 scripts/sync_conventions.py --repo qortoo-rs --initialize --diff
-python3 scripts/sync_conventions.py --repo qortoo-rs --initialize
+python3.12 scripts/sync_conventions.py --repo qortoo-rs --initialize --diff
+python3.12 scripts/sync_conventions.py --repo qortoo-rs --initialize
 ```
 
 Enrollment appends a managed block while retaining the entire existing document. It does
@@ -58,7 +59,7 @@ not delete or rewrite older handwritten shared rules; review those separately. A
 or empty document receives a generic title and the shared block, without invented build
 commands or project descriptions. `--initialize` never repairs malformed markers.
 
-Run the policy contract tests with `python3 -m unittest discover -s tests`.
+Run the policy contract tests with `python3.12 -m unittest discover -s tests`.
 
 ## Connecting a repo to this harness
 

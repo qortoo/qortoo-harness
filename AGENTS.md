@@ -1,8 +1,8 @@
 # qortoo-harness — Repository Guidelines
 
 Shared policy is authored in `policies/shared-conventions.md`. Run
-`python3 scripts/sync_conventions.py` to regenerate this file's managed block
-and those in the manifest's managed repositories. Use `--check` to detect drift.
+`python3.12 scripts/sync_conventions.py` to regenerate this file's managed block
+and those in the manifest's managed repositories (Python 3.11+). Use `--check` to detect drift.
 Keep repository-specific guidance outside the managed block.
 
 <!-- BEGIN QORTOO-HARNESS MANAGED BLOCK -->

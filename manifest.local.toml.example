@@ -1,4 +1,5 @@
 # Example local overlay for qortoo-harness
+# Schema and merge rules: docs/repository-manifest.md (Python 3.11+).
 # Copy to manifest.local.toml to customize local paths or add private/experimental repositories.
 # manifest.local.toml is gitignored and will never be committed.
 
@@ -11,9 +12,11 @@
 # path = "custom-rs-path"
 
 # Example: Include unreleased, local-only, or private repositories
-# [repositories.orda]
-# path = "orda"
-# role = "legacy-reference"
+# [repositories.internal-reference]
+# path = "internal-reference"
+# role = "reference"
 # tier = "internal"
 # tools = ["go", "make"]
+# agents_md = "unmanaged"
+# remote is optional for internal, local-only reference repositories.
 
