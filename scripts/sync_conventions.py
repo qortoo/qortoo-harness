@@ -11,7 +11,6 @@ Supports --check mode for CI and diagnostic validation.
 
 import argparse
 import difflib
-import re
 import sys
 from pathlib import Path
 
@@ -110,113 +109,37 @@ def load_manifest() -> dict:
     return config
 
 
-def clean_legacy_content(content: str, repo_name: str) -> str:
-    """Clean up scattered legacy shared sections while preserving repo-specific text."""
-    if repo_name == "qortoo-bench":
-        # qortoo-bench was an exact duplicate of harness AGENTS.md.
-        # Provide a proper project overview and command reference.
-        return """# Repository Guidelines
-
-## Project Overview
-
-Central benchmark workloads, runners, result publishing, and regression tracking across Rust and Go for the Qortoo CRDT SDK family.
-
-## Build, Test, and Development Commands
-
-See [`README.md`](README.md) for execution details:
-- `make smoke` — run lightweight local smoke validation across workloads
-- `make test` — run measurement verification and integration tests
-- `make check-contract` — verify TSV contract invariants against current SDKs
-"""
-
-    # Remove old Critical guidelines section
-    content = re.sub(
-        r"## Critical guidelines\n\nShared across all qortoo-\* repos.*?(?=\n## |\Z)",
-        "",
-        content,
-        flags=re.DOTALL,
-    )
-    # Remove old Personal plan lifecycle section
-    content = re.sub(
-        r"## Personal plan lifecycle\n+.*?(?=\n## |\Z)",
-        "",
-        content,
-        flags=re.DOTALL,
-    )
-    # Remove old Documentation Guidelines shared bullet points while keeping doc-review note
-    content = re.sub(
-        r"## Documentation Guidelines\n\nShared across all qortoo-\* repos.*?- Concept docs describe the system as it is now and the rule that holds it in place — write principles, not history\.\n*",
-        "",
-        content,
-        flags=re.DOTALL,
-    )
-    # Remove old Commit & Pull Request Guidelines shared bullets while keeping repo-specific notes
-    content = re.sub(
-        r"## Commit & Pull Request Guidelines\n\nShared across all qortoo-\* repos.*?- If behavior changes, update docs and add/adjust tests\.\n*",
-        "",
-        content,
-        flags=re.DOTALL,
-    )
-
-    # Collapse multiple consecutive blank lines
-    content = re.sub(r"\n{3,}", "\n\n", content)
-    return content.strip() + "\n"
-
-
-def update_agents_md(existing_content: str, repo_name: str) -> str:
-    """Inject or replace the managed block in existing AGENTS.md content."""
+def update_agents_md(existing_content: str, repo_name: str, initialize: bool = False) -> str:
+    """Replace one complete block or explicitly enroll an unmarked document."""
     managed_block = get_managed_block()
+    begin_count = existing_content.count(BEGIN_MARKER)
+    end_count = existing_content.count(END_MARKER)
+    if not begin_count and not end_count:
+        if not initialize:
+            raise ValueError(f"{repo_name}: no managed block; review and use --initialize to enroll")
+        if not existing_content:
+            return scaffold_new_agents_md()
+        separator = "\n" if existing_content.endswith("\n") else "\n\n"
+        return existing_content + separator + managed_block + "\n"
 
-    # Case 1: Managed block markers already exist
-    pattern = re.compile(
-        rf"{re.escape(BEGIN_MARKER)}.*?{re.escape(END_MARKER)}", re.DOTALL
-    )
-    if pattern.search(existing_content):
-        return pattern.sub(lambda match: managed_block, existing_content)
+    lines = existing_content.splitlines()
+    if (
+        begin_count != 1 or end_count != 1
+        or lines.count(BEGIN_MARKER) != 1 or lines.count(END_MARKER) != 1
+        or existing_content.index(BEGIN_MARKER) >= existing_content.index(END_MARKER)
+    ):
+        raise ValueError(f"{repo_name}: malformed or duplicate managed markers; repair manually")
 
-    # Case 2: No markers, but file exists (migration from legacy format)
-    # Clean up old scattered shared sections first
-    cleaned = clean_legacy_content(existing_content, repo_name)
-
-    # If the file has a Project Overview, insert immediately after it
-    overview_match = re.search(r"(## Project Overview\n\n.*?)((?=\n## )|\Z)", cleaned, re.DOTALL)
-    if overview_match:
-        end_pos = overview_match.end()
-        before = cleaned[:end_pos].rstrip()
-        after = cleaned[end_pos:].lstrip()
-        return f"{before}\n\n{managed_block}\n\n{after}".strip() + "\n"
-
-    # Otherwise insert right after the top title
-    title_match = re.search(r"(#[^\n]*\n+)", cleaned)
-    if title_match:
-        end_pos = title_match.end()
-        before = cleaned[:end_pos].rstrip()
-        after = cleaned[end_pos:].lstrip()
-        return f"{before}\n\n{managed_block}\n\n{after}".strip() + "\n"
-
-    # Fallback: prepend
-    return f"{managed_block}\n\n{cleaned}".strip() + "\n"
+    start = existing_content.index(BEGIN_MARKER)
+    end = existing_content.index(END_MARKER) + len(END_MARKER)
+    if existing_content[start + len(BEGIN_MARKER):].startswith("\r\n"):
+        managed_block = managed_block.replace("\n", "\r\n")
+    return existing_content[:start] + managed_block + existing_content[end:]
 
 
-def scaffold_new_agents_md(repo_name: str) -> str:
-    """Create a pristine new AGENTS.md for repos that lack one."""
-    managed_block = get_managed_block()
-    return f"""# Repository Guidelines
-
-## Project Overview
-
-Documentation portal and unified developer entry point for the Qortoo SDK family.
-
-{managed_block}
-
-## Development and Verification Commands
-
-See [`docs/developer-site.md`](docs/developer-site.md) for full execution workflow:
-- `npm test` — run document transformation, link, and candidate test suites
-- `npm run check:fixture` — verify documentation build against local asset fixtures
-- `npm run check:types` — execute TypeScript type generation and validation
-- `npm run dev` — start local development server
-"""
+def scaffold_new_agents_md() -> str:
+    """Create only generic guidance; repository-specific content is owner-authored."""
+    return f"# Repository Guidelines\n\n{get_managed_block()}\n"
 
 
 def main():
@@ -236,6 +159,11 @@ def main():
         type=str,
         help="Target qortoo-harness or a specific repository from the manifest.",
     )
+    parser.add_argument(
+        "--initialize",
+        action="store_true",
+        help="Enroll missing or unmarked AGENTS.md files without removing existing text.",
+    )
     args = parser.parse_args()
 
     # Validate the canonical source before processing any generated files.
@@ -252,57 +180,53 @@ def main():
     if args.repo and args.repo not in repositories:
         parser.error(f"Unknown repository: {args.repo}")
 
-    stale = []
-    updated = []
-
+    # Preflight every selected file before writing any of them.
+    deployments = []
+    errors = []
     for repo_name, repo_meta in sorted(repositories.items()):
         if args.repo and repo_name != args.repo:
             continue
-
         if repo_meta.get("agents_md") != "managed":
             continue
-
-        repo_rel_path = repo_meta.get("path", repo_name)
-        repo_dir = (workspace_root / repo_rel_path).resolve()
+        repo_dir = (workspace_root / repo_meta.get("path", repo_name)).resolve()
         agents_md_path = repo_dir / "AGENTS.md"
-
         if not repo_dir.exists():
             print(f"Skipping {repo_name}: directory does not exist ({repo_dir})")
             continue
+        try:
+            if agents_md_path.is_symlink():
+                raise ValueError(f"{repo_name}: refusing symlink AGENTS.md")
+            current_content = (
+                agents_md_path.read_bytes().decode("utf-8") if agents_md_path.exists() else ""
+            )
+            target_content = update_agents_md(current_content, repo_name, args.initialize)
+            deployments.append((repo_name, agents_md_path, current_content, target_content))
+        except (OSError, UnicodeError, ValueError) as error:
+            errors.append(f"{agents_md_path}: {error}")
+    if errors:
+        parser.exit(1, "Cannot synchronize conventions:\n" + "\n".join(errors) + "\n")
 
-        if agents_md_path.exists():
-            current_content = agents_md_path.read_text(encoding="utf-8")
-            target_content = update_agents_md(current_content, repo_name)
-        else:
-            current_content = ""
-            target_content = scaffold_new_agents_md(repo_name)
-
+    stale = []
+    for repo_name, agents_md_path, current_content, target_content in deployments:
         if current_content != target_content:
             stale.append(repo_name)
             if args.diff:
-                diff_lines = list(
-                    difflib.unified_diff(
-                        current_content.splitlines(keepends=True),
-                        target_content.splitlines(keepends=True),
-                        fromfile=f"a/{repo_name}/AGENTS.md",
-                        tofile=f"b/{repo_name}/AGENTS.md",
-                    )
-                )
-                print("".join(diff_lines))
+                print("".join(difflib.unified_diff(
+                    current_content.splitlines(keepends=True),
+                    target_content.splitlines(keepends=True),
+                    fromfile=f"a/{repo_name}/AGENTS.md",
+                    tofile=f"b/{repo_name}/AGENTS.md",
+                )))
             elif not args.check:
-                agents_md_path.write_text(target_content, encoding="utf-8")
-                updated.append(repo_name)
+                agents_md_path.write_bytes(target_content.encode("utf-8"))
                 print(f"Updated {agents_md_path}")
-        else:
-            if not args.check and not args.diff:
-                print(f"In sync: {agents_md_path}")
+        elif not args.check and not args.diff:
+            print(f"In sync: {agents_md_path}")
 
     if args.check:
         if stale:
-            print(f"Out of sync: {', '.join(stale)}", file=sys.stderr)
-            sys.exit(1)
-        else:
-            print("All repository AGENTS.md conventions are in sync.")
+            parser.exit(1, f"Out of sync: {', '.join(stale)}\n")
+        print("All repository AGENTS.md conventions are in sync.")
 
 
 if __name__ == "__main__":

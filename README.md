@@ -40,6 +40,24 @@ Use `--repo qortoo-harness` or a manifest repository name to select one target.
 The harness target always refers to this checkout, regardless of workspace overlays.
 Review and deliver each repository's changes separately.
 
+Normal synchronization requires exactly one complete pair of standalone managed markers
+in each existing target document. Missing, reversed, inline, or duplicate markers are
+errors. Every selected document is validated before any deployment is written.
+Symlink `AGENTS.md` targets are rejected. Replacement preserves text outside the block,
+including existing line endings and the final newline state.
+
+To enroll a missing or unmarked document, select that repository explicitly and preview:
+
+```sh
+python3 scripts/sync_conventions.py --repo qortoo-rs --initialize --diff
+python3 scripts/sync_conventions.py --repo qortoo-rs --initialize
+```
+
+Enrollment appends a managed block while retaining the entire existing document. It does
+not delete or rewrite older handwritten shared rules; review those separately. A missing
+or empty document receives a generic title and the shared block, without invented build
+commands or project descriptions. `--initialize` never repairs malformed markers.
+
 Run the policy contract tests with `python3 -m unittest discover -s tests`.
 
 ## Connecting a repo to this harness
