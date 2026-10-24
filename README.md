@@ -2,6 +2,28 @@
 
 Shared Claude Code and Codex tooling for the `qortoo-*` project family (`qortoo-rs`, `qortoo-go`, `qortoo-bench`, `qortoo`, ...). Claude Code tooling is distributed as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces); Codex agents use native TOML definitions.
 
+## Getting started
+
+Install Git and Python 3.11 or newer. Examples use `python3.12`; no third-party
+Python packages are required. Clone the harness into a workspace directory, then:
+
+```sh
+cd qortoo-harness
+python3.12 scripts/harness.py bootstrap --public-only --dry-run
+python3.12 scripts/harness.py bootstrap --public-only
+python3.12 scripts/harness.py sync --check
+python3.12 scripts/harness.py doctor
+```
+
+Bootstrap places product repositories beside the harness by default and preserves
+existing checkouts. Configure personal paths or internal repositories in the
+ignored `manifest.local.toml`, using `manifest.local.toml.example` as a reference.
+Review any reported drift before running `sync`; it can modify multiple repositories.
+Developer tool requirements for SDK builds remain owned by each product repository.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and change submission, and
+[LICENSE](LICENSE) for the Apache License 2.0.
+
 ## Principle: this is the only repo with Claude/Codex tooling
 
 Every other `qortoo-*` repo should carry **no Claude Code or Codex config of its own** — no `.claude/settings.json`, no `CLAUDE.md`, no local `agents/`/`commands/`. The one accepted exception is each repo's own root `AGENTS.md`, since that file's content is inherently repo-specific (architecture, build commands, feature flags) and AGENTS.md is a multi-tool open standard (Codex, Claude Code, Cursor, Copilot, ...) rather than Claude-specific config. See [Personal workspace convention](#personal-workspace-convention) below for why `.claude/agent-memory/` and `.local/` still exist on disk without violating this — they're gitignored, so they carry no tracked content in the repo.
@@ -87,7 +109,7 @@ not delete or rewrite older handwritten shared rules; review those separately. A
 or empty document receives a generic title and the shared block, without invented build
 commands or project descriptions. `--initialize` never repairs malformed markers.
 
-Run the policy contract tests with `python3.12 -m unittest discover -s tests`.
+Run the harness contract tests with `python3.12 -m unittest discover -s tests`.
 
 ## Connecting a repo to this harness
 
@@ -158,7 +180,15 @@ python3 scripts/sync_agents.py
 python3 scripts/sync_agents.py --check
 ```
 
-Model settings live in the generator. At setup completion, record that decision in the active personal plan and review the model settings. Keep Sol for complex work; evaluate a more economical model on representative bounded tasks before changing the configuration. The pinned Codex definition takes precedence over invocation defaults, so selecting another model requires updating or selecting a different definition. There is no automatic model routing. Compare quality and total usage including retries; a lower model price does not guarantee fewer tokens.
+Agent filenames determine role names. Generator defaults live in
+`scripts/sync_agents.py`; an optional frontmatter block in `agents/<name>.md` can
+override `description`, `target_plugin`, `claude_model`, `codex_target`,
+`codex_model`, and `codex_effort`. Use one scalar `key: value` per line; the parser
+does not implement full YAML, nested structures, or multiline values. Plugin outputs
+must stay under `plugins/<plugin>/agents/`, and Codex outputs under `.codex/agents/`.
+Only roles in the harness's `agents/` directory participate in this generator.
+
+Model settings use these generator defaults and optional source overrides. At setup completion, record that decision in the active personal plan and review the model settings. Keep Sol for complex work; evaluate a more economical model on representative bounded tasks before changing the configuration. The pinned Codex definition takes precedence over invocation defaults, so selecting another model requires updating or selecting a different definition. There is no automatic model routing. Compare quality and total usage including retries; a lower model price does not guarantee fewer tokens.
 
 ## Personal workspace convention
 
