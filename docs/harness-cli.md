@@ -55,6 +55,48 @@ a filesystem transaction: an I/O failure during application can leave earlier fi
 updated. Inspect the reported files, resolve the failure, and rerun. Generation does
 not commit, push, create a PR, or merge.
 
+## Bootstrap
+
+`bootstrap` clones missing product repositories from the merged manifest and local
+overlay. It does not bootstrap the harness itself. By default it selects all product
+entries; `--repo <name>` selects one. `--public-only` excludes internal entries after
+merging, retaining local overrides for public entries. An explicit internal `--repo`
+combined with `--public-only` is a usage error. A missing selected entry without a
+remote blocks bootstrap; the command never invents a source for local-only references.
+
+`bootstrap --dry-run` performs the same local preflight and reports preserved entries,
+exclusions, and planned clones. It neither creates directories nor contacts remotes.
+Without `--dry-run`, only planned clones can access their configured remotes.
+
+Preflight checks every selected entry before any clone:
+
+- Existing destinations must be Git working-tree roots, with a single `origin` matching
+  the configured remote when present. Dirty files, different branches, and detached
+  checkouts are preserved without pull, fetch, reset, checkout, or stash operations.
+- Existing empty/plain directories, mismatched remotes, and destination symlinks
+  (including dangling links) are rejected. Paths cannot be duplicated or nested under
+  the manifest's isolation contract. A missing target inside an uncatalogued Git
+  checkout is also rejected.
+- New destinations require a clone remote, a valid configured branch name, and a
+  usable parent path. Path changes since manifest validation are rejected.
+
+For each clone, bootstrap creates any missing parents, then exclusively creates the
+empty destination. A destination created by another process after preflight is not
+adopted, overwritten, or removed. Git clones the configured branch with submodule
+recursion and clone hooks disabled; the resulting working-tree root, origin, and
+branch are verified. Clone attempts have a 120-second timeout. Bootstrap does not
+synchronize policy files, install tools, initialize submodules, or perform Git delivery.
+Run `doctor` and `sync --check` separately after setup.
+
+On failure, only the same directory created by this attempt is removed, and only if
+it is still empty. Nonempty output is retained with an inspection message. Bootstrap
+never recursively deletes clone output or removes pre-existing destinations. Inspect
+and explicitly preserve/move aside a partial checkout before retrying; an existing
+invalid directory remains blocked. Empty parent directories may remain. Previously
+completed clones remain if a later clone fails, and are preserved on a subsequent run.
+After correcting an inaccessible remote or missing branch, a failure whose owned
+empty destination was removed can be retried directly.
+
 ## Statuses and exit codes
 
 | Status | Interpretation |
@@ -69,12 +111,17 @@ Doctor exits 0 with no errors, even if warnings or unknown findings remain; it e
 when any finding is an error. Invalid arguments, unknown repository names, invalid
 manifests, and unsupported Python versions exit 2. Sync exits 1 for drift in check mode,
 invalid selected targets, or generation/application errors, and 0 on successful
-application or preview. A zero exit status never proves live delivery or worktree
+application or preview. Bootstrap exits 1 for blocked targets or clone failures, and
+0 after successful preflight/preview or completion; usage/configuration errors exit 2.
+A zero exit status never proves live delivery or worktree
 cleanup eligibility.
 
 ## Code map
 
 - [`scripts/harness.py`](../scripts/harness.py): command routing, output, exit codes.
+- [`scripts/harness_bootstrap.py`](../scripts/harness_bootstrap.py): clone preflight,
+  preservation, and failure recovery.
+- [`scripts/harness_git.py`](../scripts/harness_git.py): bounded probes and Git process environment.
 - [`scripts/harness_doctor.py`](../scripts/harness_doctor.py): local diagnostic findings.
 - [`scripts/harness_sync.py`](../scripts/harness_sync.py): combined generation preflight.
 - [`scripts/sync_conventions.py`](../scripts/sync_conventions.py): policy planning and

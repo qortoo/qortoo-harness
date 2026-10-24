@@ -28,6 +28,8 @@ python3.12 scripts/harness.py doctor --repo qortoo-go --json
 python3.12 scripts/harness.py sync --check
 python3.12 scripts/harness.py sync --diff
 python3.12 scripts/harness.py sync
+python3.12 scripts/harness.py bootstrap --public-only --dry-run
+python3.12 scripts/harness.py bootstrap --public-only
 ```
 
 `doctor` diagnoses local Git roots, origin identity, changes, branches, cached tracking
@@ -35,6 +37,10 @@ refs, tool versions, policy/agent drift, worktree registrations, and misplaced l
 artifacts. It reports findings without fetching, switching branches, pruning, or deleting.
 `sync` validates policy blocks and all shared agent adapters together before writing.
 `--check` and `--diff` never write. A missing selected managed repository is an error.
+`bootstrap` clones missing catalog entries only. Existing checkouts are inspected and
+preserved; a blocked target prevents all clones during preflight. `--public-only`
+excludes internal entries from the merged catalog, and `--dry-run` previews without
+creating directories or contacting remotes.
 See [CLI contracts](docs/harness-cli.md) for scope, statuses, exit codes, and limits.
 
 ## Shared policy synchronization

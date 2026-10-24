@@ -51,7 +51,9 @@ identical or nested. Product paths cannot equal, contain, or reside within the h
 checkout. These checks prevent a command from treating one checkout as two independent
 targets. Missing directories are allowed so commands can diagnose or bootstrap them;
 existing paths must be directories. Validation checks configuration and filesystem
-layout, not whether an existing directory is the expected Git repository.
+layout, not whether an existing directory is the expected Git repository. The loader
+also retains the configured destination path so bootstrap can reject a leaf symlink
+rather than adopting its resolved target.
 
 ## Remote identity
 

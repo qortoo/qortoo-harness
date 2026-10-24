@@ -24,6 +24,10 @@ def main():
     sync.add_argument('--check', action='store_true', help='Fail on drift without writing')
     sync.add_argument('--diff', action='store_true', help='Preview changes without writing')
     sync.add_argument('--initialize', action='store_true', help='Enroll missing or unmarked policy files')
+    bootstrap_parser = subcommands.add_parser('bootstrap', help='Clone only missing product repositories')
+    bootstrap_parser.add_argument('--repo', help='Select one product repository')
+    bootstrap_parser.add_argument('--public-only', action='store_true', help='Exclude internal entries from the merged catalog')
+    bootstrap_parser.add_argument('--dry-run', action='store_true', help='Preflight and show the clone plan without writing or contacting remotes')
     args = parser.parse_args()
     try:
         manifest = load_manifest(ROOT)
@@ -31,6 +35,18 @@ def main():
         parser.exit(2, f'Cannot load manifest: {error}\n')
     if args.repo and args.repo not in repositories_with_harness(manifest):
         parser.error(f'Unknown repository: {args.repo}')
+    if args.command == 'bootstrap':
+        if args.repo == 'qortoo-harness':
+            parser.error('bootstrap only selects product repositories')
+        if args.repo and args.public_only and manifest.repositories[args.repo].tier != 'public':
+            parser.error('--repo selects an internal entry excluded by --public-only')
+        from harness_bootstrap import BootstrapError, bootstrap, plan_bootstrap
+        try:
+            actions = plan_bootstrap(manifest, args.repo, public_only=args.public_only)
+            bootstrap(actions, dry_run=args.dry_run)
+        except (OSError, BootstrapError) as error:
+            parser.exit(1, f'Cannot bootstrap: {error}\n')
+        return 0
     # Imports after version/configuration validation keep old-runtime failures clear.
     if args.command == 'doctor':
         from harness_doctor import diagnose

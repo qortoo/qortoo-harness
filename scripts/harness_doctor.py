@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 
+from harness_git import ProbeError, git, run
 from harness_manifest import Manifest, ManifestError, Repository, remotes_equivalent, repositories_with_harness
 from harness_sync import plan_agents
 from sync_conventions import plan_conventions
@@ -20,24 +19,6 @@ class Finding:
     check: str
     status: str
     message: str
-
-
-class ProbeError(RuntimeError):
-    pass
-
-
-def run(command: list[str]) -> subprocess.CompletedProcess:
-    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0')
-    for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR'):
-        env.pop(name, None)
-    try:
-        return subprocess.run(command, env=env, capture_output=True, text=True, errors='replace', timeout=10)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise ProbeError(f'{command[0]} could not complete the local probe') from error
-
-
-def git(path: Path, *args: str) -> subprocess.CompletedProcess:
-    return run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-C', str(path), *args])
 
 
 def worktrees(repo: Repository, manifest: Manifest) -> list[Finding]:

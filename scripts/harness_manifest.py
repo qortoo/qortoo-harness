@@ -23,6 +23,7 @@ class Repository:
     default_branch: str
     tools: tuple[str, ...]
     agents_md: str
+    configured_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -158,7 +159,8 @@ def load_manifest(harness_root: Path, *, include_local: bool = True) -> Manifest
         branch = values.get('default_branch', 'main')
         if branch.startswith('-') or any(c.isspace() for c in branch):
             raise ManifestError(f'repositories.{name}.default_branch must be a branch name')
-        path = (workspace / values['path']).resolve()
+        configured_path = workspace / values['path']
+        path = configured_path.resolve()
         if path.exists() and not path.is_dir():
             raise ManifestError(f'repositories.{name}.path is not a directory')
         for other_name, other in paths.items():
@@ -167,7 +169,7 @@ def load_manifest(harness_root: Path, *, include_local: bool = True) -> Manifest
         paths[name] = path
         repositories[name] = Repository(
             name, path, remote, values['role'], tier, branch,
-            tuple(values.get('tools', [])), agents_md,
+            tuple(values.get('tools', [])), agents_md, configured_path,
         )
     return Manifest(root, workspace, repositories)
 
