@@ -1,0 +1,12 @@
+# ripgrep / fd search ignore patterns
+.local/worktrees/
+worktrees/
+.local/logs/
+*.log
+dependency-bump-*.json
+resource-measurements/
+.venv/
+venv/
+__pycache__/
+.DS_Store
+

@@ -1,6 +1,28 @@
 # qortoo-harness
 
-Shared Claude Code configuration for the `qortoo-*` project family (`qortoo-rs`, `qortoo-go`, `qortoo`, ...), distributed as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
+Shared Claude Code and Codex tooling for the `qortoo-*` project family (`qortoo-rs`, `qortoo-go`, `qortoo-bench`, `qortoo`, ...). Claude Code tooling is distributed as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces); Codex agents use native TOML definitions.
+
+## Getting started
+
+Install Git and Python 3.11 or newer. Examples use `python3.12`; no third-party
+Python packages are required. Clone the harness into a workspace directory, then:
+
+```sh
+cd qortoo-harness
+python3.12 scripts/harness.py bootstrap --public-only --dry-run
+python3.12 scripts/harness.py bootstrap --public-only
+python3.12 scripts/harness.py sync --check
+python3.12 scripts/harness.py doctor
+```
+
+Bootstrap places product repositories beside the harness by default and preserves
+existing checkouts. Configure personal paths or internal repositories in the
+ignored `manifest.local.toml`, using `manifest.local.toml.example` as a reference.
+Review any reported drift before running `sync`; it can modify multiple repositories.
+Developer tool requirements for SDK builds remain owned by each product repository.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and change submission, and
+[LICENSE](LICENSE) for the Apache License 2.0.
 
 ## Principle: this is the only repo with Claude/Codex tooling
 
@@ -10,9 +32,84 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 
 ## What's here
 
-- `AGENTS.md` — canonical text for the conventions shared across every qortoo repo (commit/PR format, documentation philosophy, SOLID/English rules). Each consuming repo copies the relevant sections into its own root `AGENTS.md`; there's no automatic sync, since tools like Codex don't follow imports into subdirectories.
-- `plugins/qortoo-shared/` — language-agnostic agents/commands: `commit-message-writer` agent, `/commit`, `/pr`, `/doc-new` commands.
+- `policies/shared-conventions.md` — canonical shared policy text. `scripts/sync_conventions.py` deploys it into managed blocks in this harness's `AGENTS.md` and the manifest's managed repositories.
+- `AGENTS.md` — generated shared block plus harness-specific guidance.
+- `manifest.toml` — public repository catalog; see [manifest contracts](docs/repository-manifest.md) for schema, local overlays, path resolution, and remote identity.
+- `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
+- `.codex/agents/` — generated project-scoped Codex agent definitions.
+- `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
+
+## Control plane CLI
+
+Use Python 3.11 or newer (examples use `python3.12`):
+
+```sh
+python3.12 scripts/harness.py doctor
+python3.12 scripts/harness.py doctor --repo qortoo-go --json
+python3.12 scripts/harness.py sync --check
+python3.12 scripts/harness.py sync --diff
+python3.12 scripts/harness.py sync
+python3.12 scripts/harness.py bootstrap --public-only --dry-run
+python3.12 scripts/harness.py bootstrap --public-only
+```
+
+`doctor` diagnoses local Git roots, origin identity, changes, branches, cached tracking
+refs, tool versions, policy/agent drift, worktree registrations, and misplaced local
+artifacts. It reports findings without fetching, switching branches, pruning, or deleting.
+`sync` validates policy blocks and all shared agent adapters together before writing.
+`--check` and `--diff` never write. A missing selected managed repository is an error.
+`bootstrap` clones missing catalog entries only. Existing checkouts are inspected and
+preserved; a blocked target prevents all clones during preflight. `--public-only`
+excludes internal entries from the merged catalog, and `--dry-run` previews without
+creating directories or contacting remotes.
+See [CLI contracts](docs/harness-cli.md) for scope, statuses, exit codes, and limits.
+
+Use standard Git commands and the short [worktree workflow](docs/worktree-lifecycle.md)
+for creation and removal. Existing `doctor` diagnostics support manual checks.
+
+## Shared policy synchronization
+
+Edit only [`policies/shared-conventions.md`](policies/shared-conventions.md) for shared rules.
+The generator reads this file directly; it does not keep a second policy string in Python.
+It deploys the same marked block into the harness and every repository configured with
+`agents_md = "managed"` in `manifest.toml` (including local overlay entries).
+Repository-specific instructions belong outside that block.
+
+From the harness root, with Python 3.11 or newer (examples use `python3.12`):
+
+```sh
+python3.12 scripts/sync_conventions.py --diff
+python3.12 scripts/sync_conventions.py
+python3.12 scripts/sync_conventions.py --check
+```
+
+`--diff` previews without writing; `--check` exits with status 1 if a selected deployment
+has drifted. Missing selected managed repository directories are errors; checks do
+not silently skip them.
+Use `--repo qortoo-harness` or a manifest repository name to select one target.
+The harness target always refers to this checkout, regardless of workspace overlays.
+Review and deliver each repository's changes separately.
+
+Normal synchronization requires exactly one complete pair of standalone managed markers
+in each existing target document. Missing, reversed, inline, or duplicate markers are
+errors. Every selected document is validated before any deployment is written.
+Symlink `AGENTS.md` targets are rejected. Replacement preserves text outside the block,
+including existing line endings and the final newline state.
+
+To enroll a missing or unmarked document, select that repository explicitly and preview:
+
+```sh
+python3.12 scripts/sync_conventions.py --repo qortoo-rs --initialize --diff
+python3.12 scripts/sync_conventions.py --repo qortoo-rs --initialize
+```
+
+Enrollment appends a managed block while retaining the entire existing document. It does
+not delete or rewrite older handwritten shared rules; review those separately. A missing
+or empty document receives a generic title and the shared block, without invented build
+commands or project descriptions. `--initialize` never repairs malformed markers.
+
+Run the harness contract tests with `python3.12 -m unittest discover -s tests`.
 
 ## Connecting a repo to this harness
 
@@ -52,9 +149,46 @@ Installed commands/agents are namespaced by plugin name, e.g. `/qortoo-shared:co
 
 ### Codex
 
-Codex has no plugin marketplace concept — it only reads a repo's root `AGENTS.md` and doesn't follow imports into subdirectories, so none of the above wiring applies. The only way to bring this harness's conventions to Codex is manual: copy the relevant sections of this repo's `AGENTS.md` into the consuming repo's own root `AGENTS.md`. The commands/agents under `plugins/*/commands` and `plugins/*/agents` are Claude Code-only and have no Codex equivalent.
+Codex loads [custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents) from project `.codex/agents/` or user `~/.codex/agents/`. The generated benchmark developer definition lives in this harness's `.codex/agents/`; Claude plugin registration does not register it with Codex.
 
-Since there's no automatic sync either way, re-copy the relevant sections whenever this repo's `AGENTS.md` changes.
+Start a new Codex session in qortoo-harness and request: "Use the bench-agent subagent to work on qortoo-bench. Run local smoke validation and report the changed scope." Include the actual task, setup status, and relevant plan path. Check the subagent activity to verify the selected role and model; file validation alone does not establish runtime discovery.
+
+To make the same definition available when starting in another repository, link it into the user agent directory. Replace the example checkout path with your own. These commands intentionally do not overwrite an existing definition:
+
+```sh
+mkdir -p ~/.codex/agents
+ln -s /absolute/path/to/qortoo-harness/.codex/agents/bench-agent.toml ~/.codex/agents/bench-agent.toml
+```
+
+No Codex configuration is added to qortoo-bench or the SDK repositories. Regenerate shared conventions using the [policy synchronization workflow](#shared-policy-synchronization) when they change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
+
+## Bench agent
+
+The [shared role](agents/bench-agent.md) defines scope, measurement contracts, execution authority, completion criteria, and model policy. It covers qortoo-bench development and initial SDK integration; after setup, changes are restricted to benchmark-related work. SDK product optimization is a separately requested task. Local checks and smoke validation are autonomous; full measurements, remote CI, publication, and each Git delivery stage require the corresponding request.
+
+| Tool | Definition | Model during setup |
+| --- | --- | --- |
+| Claude Code | [qortoo-shared agent](plugins/qortoo-shared/agents/bench-agent.md) | `inherit` |
+| Codex | [native agent](.codex/agents/bench-agent.toml) | `gpt-6.1-sol`, reasoning `high` |
+
+Claude Code receives the agent through the existing qortoo-shared plugin. Ask it to use `qortoo-shared:bench-agent` and provide a concrete task. For local harness changes, use the local marketplace source described above; a GitHub-backed install uses the published repository version.
+
+Edit the shared role, then regenerate both adapters with Python 3.9 or newer:
+
+```sh
+python3 scripts/sync_agents.py
+python3 scripts/sync_agents.py --check
+```
+
+Agent filenames determine role names. Generator defaults live in
+`scripts/sync_agents.py`; an optional frontmatter block in `agents/<name>.md` can
+override `description`, `target_plugin`, `claude_model`, `codex_target`,
+`codex_model`, and `codex_effort`. Use one scalar `key: value` per line; the parser
+does not implement full YAML, nested structures, or multiline values. Plugin outputs
+must stay under `plugins/<plugin>/agents/`, and Codex outputs under `.codex/agents/`.
+Only roles in the harness's `agents/` directory participate in this generator.
+
+Model settings use these generator defaults and optional source overrides. At setup completion, record that decision in the active personal plan and review the model settings. Keep Sol for complex work; evaluate a more economical model on representative bounded tasks before changing the configuration. The pinned Codex definition takes precedence over invocation defaults, so selecting another model requires updating or selecting a different definition. There is no automatic model routing. Compare quality and total usage including retries; a lower model price does not guarantee fewer tokens.
 
 ## Personal workspace convention
 
@@ -65,7 +199,7 @@ Individual developer notes, plans, and in-progress task lists are not shared via
 .local/
 ```
 
-- `.local/` — free-form personal workspace (plans, task lists, working notes). Plan documents under `.local/plans/` use the language of the current user session; other content remains free-form. The workspace is not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
+- `.local/` — free-form personal workspace (plans, task lists, working notes). Active plan documents live under `.local/plans/`; after their checklist and external delivery are complete, mark them complete and move them to `.local/archive/`. Plan documents use the language of the current user session, while other content remains free-form. The workspace is not tied to any specific AI tool, so Claude, Codex, or a human can all write here.
 - `.claude/` — now holds only local, gitignored state: `settings.local.json` (personal tool permissions) and `agent-memory/` (Claude Code's project-scoped agent memory, e.g. the `qortoo-api-designer` agent's persistent notes — kept local rather than shared, so its content isn't subject to review before it lands). Nothing under `.claude/` is tracked in a qortoo-* repo other than this one.
 
 ## Adding a new language tier

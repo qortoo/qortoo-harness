@@ -1,0 +1,20 @@
+# Exclude legacy worktrees from agent searches to prevent massive token waste and hallucination
+.local/worktrees/
+worktrees/
+
+# Exclude massive test/benchmark logs and raw data dumps
+.local/logs/
+*.log
+dependency-bump-*.json
+resource-measurements/
+
+# Exclude virtual environments and cache
+.venv/
+venv/
+__pycache__/
+
+# Exclude OS and editor metadata
+.DS_Store
+.idea/
+.vscode/
+
