@@ -18,6 +18,25 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 - `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
 
+## Control plane CLI
+
+Use Python 3.11 or newer (examples use `python3.12`):
+
+```sh
+python3.12 scripts/harness.py doctor
+python3.12 scripts/harness.py doctor --repo qortoo-go --json
+python3.12 scripts/harness.py sync --check
+python3.12 scripts/harness.py sync --diff
+python3.12 scripts/harness.py sync
+```
+
+`doctor` diagnoses local Git roots, origin identity, changes, branches, cached tracking
+refs, tool versions, policy/agent drift, worktree registrations, and misplaced local
+artifacts. It reports findings without fetching, switching branches, pruning, or deleting.
+`sync` validates policy blocks and all shared agent adapters together before writing.
+`--check` and `--diff` never write. A missing selected managed repository is an error.
+See [CLI contracts](docs/harness-cli.md) for scope, statuses, exit codes, and limits.
+
 ## Shared policy synchronization
 
 Edit only [`policies/shared-conventions.md`](policies/shared-conventions.md) for shared rules.
@@ -35,8 +54,8 @@ python3.12 scripts/sync_conventions.py --check
 ```
 
 `--diff` previews without writing; `--check` exits with status 1 if a selected deployment
-has drifted. Missing repository directories are currently reported and skipped, so a
-successful check establishes agreement only for existing selected repositories.
+has drifted. Missing selected managed repository directories are errors; checks do
+not silently skip them.
 Use `--repo qortoo-harness` or a manifest repository name to select one target.
 The harness target always refers to this checkout, regardless of workspace overlays.
 Review and deliver each repository's changes separately.

@@ -9,12 +9,15 @@ Embeds canonical policy rules inside managed markdown comment blocks:
 Supports --check mode for CI and diagnostic validation.
 """
 
+from __future__ import annotations
+
 import argparse
+from dataclasses import dataclass
 import difflib
 import sys
 from pathlib import Path
 
-from harness_manifest import ManifestError, Repository, load_manifest
+from harness_manifest import Manifest, ManifestError, load_manifest, repositories_with_harness
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -67,6 +70,75 @@ def scaffold_new_agents_md() -> str:
     return f"# Repository Guidelines\n\n{get_managed_block()}\n"
 
 
+
+@dataclass(frozen=True)
+class Deployment:
+    """One generated text file and its observed preflight content."""
+
+    name: str
+    path: Path
+    current: str | None
+    target: str
+
+    @property
+    def stale(self) -> bool:
+        return self.current != self.target
+
+
+def plan_conventions(manifest: Manifest, repo: str | None = None, initialize: bool = False) -> list[Deployment]:
+    """Validate the entire requested policy scope without writing any files."""
+    get_managed_block()
+    repositories = repositories_with_harness(manifest)
+    if repo and repo not in repositories:
+        raise ValueError(f"Unknown repository: {repo}")
+    if repo and repositories[repo].agents_md != 'managed':
+        raise ValueError(f"{repo}: AGENTS.md is unmanaged; no policy target selected")
+    deployments = []
+    errors = []
+    for name, entry in sorted(repositories.items()):
+        if (repo and name != repo) or entry.agents_md != 'managed':
+            continue
+        path = entry.path / 'AGENTS.md'
+        try:
+            if not entry.path.is_dir():
+                raise ValueError(f"{name}: repository directory is missing")
+            if path.is_symlink():
+                raise ValueError(f"{name}: refusing symlink AGENTS.md")
+            current = path.read_bytes().decode('utf-8') if path.exists() else None
+            target = update_agents_md(current or '', name, initialize)
+            deployments.append(Deployment(name, path, current, target))
+        except (OSError, ValueError) as error:
+            errors.append(f"{path}: {error}")
+    if errors:
+        raise ValueError('Cannot synchronize conventions:\n' + '\n'.join(errors))
+    return deployments
+
+
+def finish_deployments(deployments: list[Deployment], *, check: bool = False, diff: bool = False) -> int:
+    """Report or apply a fully validated plan, refusing changes since preflight."""
+    stale = [item for item in deployments if item.stale]
+    if not check and not diff:
+        for item in stale:
+            current = item.path.read_bytes().decode('utf-8') if item.path.exists() else None
+            if item.path.is_symlink() or current != item.current:
+                raise ValueError(f'{item.path}: target changed after preflight; rerun synchronization')
+        for item in stale:
+            item.path.parent.mkdir(parents=True, exist_ok=True)
+            item.path.write_bytes(item.target.encode('utf-8'))
+            print(f'Updated {item.path}')
+    if diff:
+        for item in stale:
+            print(''.join(difflib.unified_diff(
+                (item.current or '').splitlines(keepends=True), item.target.splitlines(keepends=True),
+                fromfile=f'a/{item.name}', tofile=f'b/{item.name}',
+            )))
+    if check and stale:
+        print('Out of sync: ' + ', '.join(item.name for item in stale), file=sys.stderr)
+        return 1
+    if check:
+        print(f'In sync: {len(deployments)} generated files checked.')
+    return 0
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -91,71 +163,16 @@ def main():
     )
     args = parser.parse_args()
 
-    # Validate the canonical source before processing any generated files.
-    try:
-        get_managed_block()
-    except (OSError, ValueError) as error:
-        parser.exit(1, f"Cannot load shared conventions: {error}\n")
-
     try:
         manifest = load_manifest(ROOT)
     except ManifestError as error:
         parser.exit(1, f"Cannot load manifest: {error}\n")
-    repositories = dict(manifest.repositories)
-    # The harness is always a deployment target, independent of workspace overlays.
-    repositories["qortoo-harness"] = Repository(
-        "qortoo-harness", ROOT, None, "control-plane", "public", "main", (), "managed"
-    )
-    if args.repo and args.repo not in repositories:
-        parser.error(f"Unknown repository: {args.repo}")
-
-    # Preflight every selected file before writing any of them.
-    deployments = []
-    errors = []
-    for repo_name, repo_meta in sorted(repositories.items()):
-        if args.repo and repo_name != args.repo:
-            continue
-        if repo_meta.agents_md != "managed":
-            continue
-        repo_dir = repo_meta.path
-        agents_md_path = repo_dir / "AGENTS.md"
-        if not repo_dir.exists():
-            print(f"Skipping {repo_name}: directory does not exist ({repo_dir})")
-            continue
-        try:
-            if agents_md_path.is_symlink():
-                raise ValueError(f"{repo_name}: refusing symlink AGENTS.md")
-            current_content = (
-                agents_md_path.read_bytes().decode("utf-8") if agents_md_path.exists() else ""
-            )
-            target_content = update_agents_md(current_content, repo_name, args.initialize)
-            deployments.append((repo_name, agents_md_path, current_content, target_content))
-        except (OSError, UnicodeError, ValueError) as error:
-            errors.append(f"{agents_md_path}: {error}")
-    if errors:
-        parser.exit(1, "Cannot synchronize conventions:\n" + "\n".join(errors) + "\n")
-
-    stale = []
-    for repo_name, agents_md_path, current_content, target_content in deployments:
-        if current_content != target_content:
-            stale.append(repo_name)
-            if args.diff:
-                print("".join(difflib.unified_diff(
-                    current_content.splitlines(keepends=True),
-                    target_content.splitlines(keepends=True),
-                    fromfile=f"a/{repo_name}/AGENTS.md",
-                    tofile=f"b/{repo_name}/AGENTS.md",
-                )))
-            elif not args.check:
-                agents_md_path.write_bytes(target_content.encode("utf-8"))
-                print(f"Updated {agents_md_path}")
-        elif not args.check and not args.diff:
-            print(f"In sync: {agents_md_path}")
-
-    if args.check:
-        if stale:
-            parser.exit(1, f"Out of sync: {', '.join(stale)}\n")
-        print("All repository AGENTS.md conventions are in sync.")
+    try:
+        deployments = plan_conventions(manifest, args.repo, args.initialize)
+        result = finish_deployments(deployments, check=args.check, diff=args.diff)
+    except (OSError, ValueError) as error:
+        parser.exit(1, f"Cannot synchronize: {error}\n")
+    raise SystemExit(result)
 
 
 if __name__ == "__main__":

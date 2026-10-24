@@ -53,8 +53,10 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
     return frontmatter, body.strip() + "\n"
 
 
-def sync_agent(agent_name: str, check: bool = False) -> list[str]:
-    """Sync Claude and Codex definitions for a given agent. Returns list of stale files if in check mode."""
+def render_agent(agent_name: str) -> dict[Path, str]:
+    """Render both adapters without writing; reject targets outside this harness."""
+    if not agent_name or Path(agent_name).name != agent_name or agent_name in (".", ".."):
+        raise ValueError("Invalid agent name")
     agent_source = ROOT / "agents" / f"{agent_name}.md"
     if not agent_source.exists():
         raise FileNotFoundError(f"Agent definition not found: {agent_source}")
@@ -70,6 +72,13 @@ def sync_agent(agent_name: str, check: bool = False) -> list[str]:
     codex_target = fm.get("codex_target", meta.get("codex_target", f".codex/agents/{agent_name}.toml"))
     codex_model = fm.get("codex_model", meta.get("codex_model", "gpt-6.1-sol"))
     codex_effort = fm.get("codex_effort", meta.get("codex_effort", "high"))
+
+    plugin = Path(target_plugin)
+    codex = Path(codex_target)
+    if (plugin.is_absolute() or not plugin.parts or plugin.parts[0] != 'plugins'
+            or plugin.parent.name != 'agents' or plugin.suffix != '.md'
+            or codex.is_absolute() or codex.parent != Path('.codex/agents') or codex.suffix != '.toml'):
+        raise ValueError(f"Agent '{agent_name}' targets must stay in plugin agents/ and .codex/agents/")
 
     if "'''" in body:
         raise ValueError(f"Agent '{agent_name}' body contains TOML literal string delimiter (''')")
@@ -89,6 +98,20 @@ def sync_agent(agent_name: str, check: bool = False) -> list[str]:
         ),
     }
 
+    for path in outputs:
+        resolved = path.resolve()
+        if not resolved.is_relative_to(ROOT.resolve()) or resolved == agent_source.resolve():
+            raise ValueError(f"Agent '{agent_name}' has an invalid output target")
+        if path.is_symlink():
+            raise ValueError(f"Agent '{agent_name}' output is a symlink")
+    if len(outputs) != 2:
+        raise ValueError(f"Agent '{agent_name}' adapter targets overlap")
+    return outputs
+
+
+def sync_agent(agent_name: str, check: bool = False) -> list[str]:
+    """Sync a single role, or return its stale adapter paths in check mode."""
+    outputs = render_agent(agent_name)
     stale = []
     for path, content in outputs.items():
         relative = path.relative_to(ROOT)

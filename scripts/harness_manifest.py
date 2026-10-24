@@ -170,3 +170,13 @@ def load_manifest(harness_root: Path, *, include_local: bool = True) -> Manifest
             tuple(values.get('tools', [])), agents_md,
         )
     return Manifest(root, workspace, repositories)
+
+
+def repositories_with_harness(manifest: Manifest) -> dict[str, Repository]:
+    """Include the command's own checkout without accepting a manifest override."""
+    repositories = dict(manifest.repositories)
+    repositories['qortoo-harness'] = Repository(
+        'qortoo-harness', manifest.harness_root, None, 'control-plane',
+        'public', 'main', (), 'managed',
+    )
+    return repositories
