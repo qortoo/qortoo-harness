@@ -1,6 +1,6 @@
 # qortoo-harness
 
-Shared Claude Code configuration for the `qortoo-*` project family (`qortoo-rs`, `qortoo-go`, `qortoo`, ...), distributed as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
+Shared Claude Code and Codex tooling for the `qortoo-*` project family (`qortoo-rs`, `qortoo-go`, `qortoo-bench`, `qortoo`, ...). Claude Code tooling is distributed as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces); Codex agents use native TOML definitions.
 
 ## Principle: this is the only repo with Claude/Codex tooling
 
@@ -11,7 +11,9 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 ## What's here
 
 - `AGENTS.md` — canonical text for the conventions shared across every qortoo repo (commit/PR format, documentation philosophy, SOLID/English rules). Each consuming repo copies the relevant sections into its own root `AGENTS.md`; there's no automatic sync, since tools like Codex don't follow imports into subdirectories.
-- `plugins/qortoo-shared/` — language-agnostic agents/commands: `commit-message-writer` agent, `/commit`, `/pr`, `/doc-new` commands.
+- `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
+- `.codex/agents/` — generated project-scoped Codex agent definitions.
+- `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
 
 ## Connecting a repo to this harness
@@ -52,9 +54,38 @@ Installed commands/agents are namespaced by plugin name, e.g. `/qortoo-shared:co
 
 ### Codex
 
-Codex has no plugin marketplace concept — it only reads a repo's root `AGENTS.md` and doesn't follow imports into subdirectories, so none of the above wiring applies. The only way to bring this harness's conventions to Codex is manual: copy the relevant sections of this repo's `AGENTS.md` into the consuming repo's own root `AGENTS.md`. The commands/agents under `plugins/*/commands` and `plugins/*/agents` are Claude Code-only and have no Codex equivalent.
+Codex loads [custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents) from project `.codex/agents/` or user `~/.codex/agents/`. The generated benchmark developer definition lives in this harness's `.codex/agents/`; Claude plugin registration does not register it with Codex.
 
-Since there's no automatic sync either way, re-copy the relevant sections whenever this repo's `AGENTS.md` changes.
+Start a new Codex session in qortoo-harness and request: "Use the bench-agent subagent to work on qortoo-bench. Run local smoke validation and report the changed scope." Include the actual task, setup status, and relevant plan path. Check the subagent activity to verify the selected role and model; file validation alone does not establish runtime discovery.
+
+To make the same definition available when starting in another repository, link it into the user agent directory. Replace the example checkout path with your own. These commands intentionally do not overwrite an existing definition:
+
+```sh
+mkdir -p ~/.codex/agents
+ln -s /absolute/path/to/qortoo-harness/.codex/agents/bench-agent.toml ~/.codex/agents/bench-agent.toml
+```
+
+No Codex configuration is added to qortoo-bench or the SDK repositories. Keep copying shared conventions into each consuming repo's root `AGENTS.md` when those conventions change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
+
+## Bench agent
+
+The [shared role](agents/bench-agent.md) defines scope, measurement contracts, execution authority, completion criteria, and model policy. It covers qortoo-bench development and initial SDK integration; after setup, changes are restricted to benchmark-related work. SDK product optimization is a separately requested task. Local checks and smoke validation are autonomous; full measurements, remote CI, publication, and each Git delivery stage require the corresponding request.
+
+| Tool | Definition | Model during setup |
+| --- | --- | --- |
+| Claude Code | [qortoo-shared agent](plugins/qortoo-shared/agents/bench-agent.md) | `inherit` |
+| Codex | [native agent](.codex/agents/bench-agent.toml) | `gpt-6.1-sol`, reasoning `high` |
+
+Claude Code receives the agent through the existing qortoo-shared plugin. Ask it to use `qortoo-shared:bench-agent` and provide a concrete task. For local harness changes, use the local marketplace source described above; a GitHub-backed install uses the published repository version.
+
+Edit the shared role, then regenerate both adapters with Python 3.9 or newer:
+
+```sh
+python3 scripts/sync_agents.py
+python3 scripts/sync_agents.py --check
+```
+
+Model settings live in the generator. At setup completion, record that decision in the active personal plan and review the model settings. Keep Sol for complex work; evaluate a more economical model on representative bounded tasks before changing the configuration. The pinned Codex definition takes precedence over invocation defaults, so selecting another model requires updating or selecting a different definition. There is no automatic model routing. Compare quality and total usage including retries; a lower model price does not guarantee fewer tokens.
 
 ## Personal workspace convention
 
