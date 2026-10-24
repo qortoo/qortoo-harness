@@ -10,11 +10,37 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 
 ## What's here
 
-- `AGENTS.md` — canonical text for the conventions shared across every qortoo repo (commit/PR format, documentation philosophy, SOLID/English rules). Each consuming repo copies the relevant sections into its own root `AGENTS.md`; there's no automatic sync, since tools like Codex don't follow imports into subdirectories.
+- `policies/shared-conventions.md` — canonical shared policy text. `scripts/sync_conventions.py` deploys it into managed blocks in this harness's `AGENTS.md` and the manifest's managed repositories.
+- `AGENTS.md` — generated shared block plus harness-specific guidance.
 - `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
 - `.codex/agents/` — generated project-scoped Codex agent definitions.
 - `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
+
+## Shared policy synchronization
+
+Edit only [`policies/shared-conventions.md`](policies/shared-conventions.md) for shared rules.
+The generator reads this file directly; it does not keep a second policy string in Python.
+It deploys the same marked block into the harness and every repository configured with
+`agents_md = "managed"` in `manifest.toml` (including local overlay entries).
+Repository-specific instructions belong outside that block.
+
+From the harness root, with Python 3.9 or newer:
+
+```sh
+python3 scripts/sync_conventions.py --diff
+python3 scripts/sync_conventions.py
+python3 scripts/sync_conventions.py --check
+```
+
+`--diff` previews without writing; `--check` exits with status 1 if a selected deployment
+has drifted. Missing repository directories are currently reported and skipped, so a
+successful check establishes agreement only for existing selected repositories.
+Use `--repo qortoo-harness` or a manifest repository name to select one target.
+The harness target always refers to this checkout, regardless of workspace overlays.
+Review and deliver each repository's changes separately.
+
+Run the policy contract tests with `python3 -m unittest discover -s tests`.
 
 ## Connecting a repo to this harness
 
@@ -65,7 +91,7 @@ mkdir -p ~/.codex/agents
 ln -s /absolute/path/to/qortoo-harness/.codex/agents/bench-agent.toml ~/.codex/agents/bench-agent.toml
 ```
 
-No Codex configuration is added to qortoo-bench or the SDK repositories. Keep copying shared conventions into each consuming repo's root `AGENTS.md` when those conventions change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
+No Codex configuration is added to qortoo-bench or the SDK repositories. Regenerate shared conventions using the [policy synchronization workflow](#shared-policy-synchronization) when they change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
 
 ## Bench agent
 
