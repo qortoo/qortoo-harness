@@ -37,7 +37,7 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 - `manifest.toml` — public repository catalog; see [manifest contracts](docs/repository-manifest.md) for schema, local overlays, path resolution, and remote identity.
 - `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
 - `.codex/agents/` — generated project-scoped Codex agent definitions.
-- `plugins/qortoo-shared/` — language-agnostic agents/commands: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
+- `plugins/qortoo-shared/` — language-agnostic agents, commands, and the `grill-me` skill: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
 
 ## Control plane CLI
@@ -159,6 +159,15 @@ To make the same definition available when starting in another repository, link 
 mkdir -p ~/.codex/agents
 ln -s /absolute/path/to/qortoo-harness/.codex/agents/bench-agent.toml ~/.codex/agents/bench-agent.toml
 ```
+
+To use the adapted `grill-me` skill in Codex across repositories, link it once into your user skills directory (replace the checkout path):
+
+```sh
+mkdir -p ~/.codex/skills
+ln -s /absolute/path/to/qortoo-harness/plugins/qortoo-shared/skills/grill-me ~/.codex/skills/grill-me
+```
+
+Start a new session and invoke `grill-me` for a guided, code-based discussion.
 
 No Codex configuration is added to qortoo-bench or the SDK repositories. Regenerate shared conventions using the [policy synchronization workflow](#shared-policy-synchronization) when they change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
 
