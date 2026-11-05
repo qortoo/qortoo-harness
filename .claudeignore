@@ -4,6 +4,7 @@ worktrees/
 
 # Exclude massive test/benchmark logs and raw data dumps
 .local/logs/
+.local/validations/
 *.log
 dependency-bump-*.json
 resource-measurements/

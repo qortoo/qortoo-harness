@@ -2,6 +2,7 @@
 .local/worktrees/
 worktrees/
 .local/logs/
+.local/validations/
 *.log
 dependency-bump-*.json
 resource-measurements/
