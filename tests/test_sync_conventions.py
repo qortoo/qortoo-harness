@@ -51,24 +51,19 @@ class PolicyDeploymentTests(unittest.TestCase):
             content = target.read_text()
             self.assertEqual(content.split(BEGIN)[0], prefix)
             self.assertTrue(content.endswith('\n\n## Local\n\nKeep this rule.\n'))
-            self.assertIn(self.source.read_text().strip(), content)
+            self.assertIn('qortoo-harness/policies/shared-conventions.md', content)
+            self.assertNotIn('Replacement rule', content)
         snapshot = [p.read_bytes() for p in self.targets]
         self.assertEqual(self.run_sync().returncode, 0)
         self.assertEqual(snapshot, [p.read_bytes() for p in self.targets])
         self.assertEqual(self.run_sync('--check').returncode, 0)
 
-    def test_source_change_is_detected_without_writing_by_check_and_diff(self):
+    def test_source_change_does_not_require_target_updates(self):
         self.assertEqual(self.run_sync().returncode, 0)
         snapshot = [p.read_bytes() for p in self.targets]
         self.source.write_text('## Shared Rules\n\n- New source rule.\n')
-        result = self.run_sync('--check')
-        self.assertEqual(result.returncode, 1)
-        self.assertIn('qortoo-harness', result.stderr)
-        self.assertIn('product', result.stderr)
-        result = self.run_sync('--diff')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('+', result.stdout)
-        self.assertIn('New source rule.', result.stdout)
+        self.assertEqual(self.run_sync('--check').returncode, 0)
+        self.assertEqual(self.run_sync().returncode, 0)
         self.assertEqual(snapshot, [p.read_bytes() for p in self.targets])
 
     def test_missing_or_invalid_source_fails_before_any_write(self):
@@ -86,7 +81,7 @@ class PolicyDeploymentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.run_sync('--check', '--repo', 'qortoo-harness').returncode, 0)
         self.assertEqual(product_before, self.targets[1].read_bytes())
-        self.targets[0].write_text(self.targets[0].read_text().replace('Original rule.', 'Local drift.'))
+        self.targets[0].write_text(self.targets[0].read_text().replace('Before starting work', 'Local drift'))
         self.assertEqual(self.run_sync('--check', '--repo', 'qortoo-harness').returncode, 1)
 
     def test_reserved_harness_overlay_is_rejected_without_writes(self):

@@ -32,7 +32,7 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 
 ## What's here
 
-- `policies/shared-conventions.md` — canonical shared policy text. `scripts/sync_conventions.py` deploys it into managed blocks in this harness's `AGENTS.md` and the manifest's managed repositories.
+- `policies/shared-conventions.md` — canonical shared policy text, read directly by agents from each repository.
 - `AGENTS.md` — generated shared block plus harness-specific guidance.
 - `manifest.toml` — public repository catalog; see [manifest contracts](docs/repository-manifest.md) for schema, local overlays, path resolution, and remote identity.
 - `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
@@ -71,10 +71,13 @@ for creation and removal. Existing `doctor` diagnostics support manual checks.
 ## Shared policy synchronization
 
 Edit only [`policies/shared-conventions.md`](policies/shared-conventions.md) for shared rules.
-The generator reads this file directly; it does not keep a second policy string in Python.
-It deploys the same marked block into the harness and every repository configured with
+Each managed `AGENTS.md` contains a stable instruction to read this file before work.
+Policy edits therefore do not require changes in the other repositories. Use the local
+harness checkout when available; otherwise read the [policy on GitHub](https://github.com/qortoo/qortoo-harness/blob/main/policies/shared-conventions.md).
+The GitHub fallback reflects the merged `main` branch. If neither location is accessible,
+the agent reports that the shared policy could not be read. Repository-specific instructions stay outside the block.
+The generator installs and checks this reference in the harness and repositories with
 `agents_md = "managed"` in `manifest.toml` (including local overlay entries).
-Repository-specific instructions belong outside that block.
 
 From the harness root, with Python 3.11 or newer (examples use `python3.12`):
 
@@ -106,7 +109,7 @@ python3.12 scripts/sync_conventions.py --repo qortoo-rs --initialize
 
 Enrollment appends a managed block while retaining the entire existing document. It does
 not delete or rewrite older handwritten shared rules; review those separately. A missing
-or empty document receives a generic title and the shared block, without invented build
+or empty document receives a generic title and the reference block, without invented build
 commands or project descriptions. `--initialize` never repairs malformed markers.
 
 Run the harness contract tests with `python3.12 -m unittest discover -s tests`.

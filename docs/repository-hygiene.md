@@ -77,7 +77,7 @@ Heavy output files, raw telemetry dumps, and virtual environments must be shield
 
 ### High-Density Imperative Policy
 
-Shared conventions in `AGENTS.md` occupy instruction context when loaded by an agent.
+Shared conventions are read from the harness policy file and occupy instruction context when loaded by an agent.
 Loading and prompt-caching behavior vary by tool; keep the common block concise.
 
 - **Token Ceiling**: The shared conventions block must not exceed **800–1,000 tokens** (approximately 60–80 concise lines).

@@ -104,7 +104,7 @@ def diagnose(manifest: Manifest, repo: str | None = None) -> dict:
             try:
                 plans = plan_conventions(manifest, entry.name)
                 stale = any(item.stale for item in plans)
-                findings.append(Finding(entry.name, 'policy', 'error' if stale else 'ok', 'Managed block drift' if stale else 'Managed block matches source'))
+                findings.append(Finding(entry.name, 'policy', 'error' if stale else 'ok', 'Policy reference drift' if stale else 'Policy reference is current'))
             except (OSError, ValueError) as error:
                 findings.append(Finding(entry.name, 'policy', 'error', str(error)))
         else:
