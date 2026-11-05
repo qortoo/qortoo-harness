@@ -32,7 +32,7 @@ observations, not authorization or proof that a checkout is safe to delete.
 
 ## Sync
 
-`sync` first renders and validates every selected managed policy block and every shared
+`sync` first renders and validates every selected managed policy reference and every shared
 agent adapter without writing. It then applies stale files. `--repo` selects policy
 scope only; all shared harness agents remain included. Selecting an unmanaged policy
 entry fails rather than claiming that a policy was checked.

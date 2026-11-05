@@ -4,7 +4,7 @@
 - **Design**: Favor SOLID principles, especially SRP and OCP; check them during review.
 - **Tooling Ownership**: Keep shared Claude/Codex tooling in `qortoo-harness`. Other repositories carry only their root `AGENTS.md`; do not add `CLAUDE.md` or tracked `.claude/settings.json`. Personal, gitignored agent state is local.
 - **Worktrees**: Create isolated worktrees outside every repository, under `../qortoo-worktrees/` relative to the harness. See `qortoo-harness/docs/repository-hygiene.md`.
-- **Personal Work**: Keep all plans in `qortoo-harness/.local/plans/` and task lists, working notes, and logs under its `.local/`. Never commit personal `.local/` or `.claude/` state. Update the plan's status, checklist, and progress log during the work, including corrections and scope decisions.
+- **Personal Work**: Keep plans in `qortoo-harness/.local/plans/` and any personal notes or retained evidence under its `.local/`. Use ctx history before creating duplicate records; do not save routine passing logs or duplicate validation reports. Retain evidence when exact output or reproducibility matters. Use `ctx sift` for long output when appropriate. Never commit personal `.local/` or `.claude/` state. Update the plan's status, checklist, and progress log during the work, including corrections and scope decisions.
 
 ## Commit & Pull Request Guidelines
 

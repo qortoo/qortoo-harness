@@ -52,10 +52,18 @@ All personal, temporary, and diagnostic files reside exclusively in the gitignor
 qortoo-harness/.local/
 ├── plans/              # Active task plans (Active only; read by agents)
 ├── archive/            # Completed plans (personal history)
-├── logs/               # Active diagnostic logs
-│   └── archive/        # Rotated historical test/benchmark logs
-└── validations/        # Consolidated verification and review reports
+├── logs/               # Retained diagnostic and benchmark output
+└── validations/        # Retained verification evidence
 ```
+
+Search prior agent work with `ctx search` before creating a separate record.
+Do not save routine passing output or duplicate validation reports. Keep concise
+check results in the task plan where needed. Retain exact output when it is needed
+for diagnosis, reproducibility, measurement, or a requested deliverable; benchmark
+raw samples and metadata remain subject to the measurement contract. Agent history
+is not a guarantee that complete output is retained. Use `ctx sift` for long command
+output when appropriate, and check its retention settings before relying on recall.
+Avoid reading retained logs in full when a targeted excerpt is sufficient.
 
 ### Search Shielding (`.gitignore`, `.claudeignore`, `.ignore`)
 
@@ -69,7 +77,7 @@ Heavy output files, raw telemetry dumps, and virtual environments must be shield
 
 ### High-Density Imperative Policy
 
-Shared conventions in `AGENTS.md` occupy instruction context when loaded by an agent.
+Shared conventions are read from the harness policy file and occupy instruction context when loaded by an agent.
 Loading and prompt-caching behavior vary by tool; keep the common block concise.
 
 - **Token Ceiling**: The shared conventions block must not exceed **800–1,000 tokens** (approximately 60–80 concise lines).
@@ -102,6 +110,6 @@ Do not commit temporary conversation transcripts, IDE scratch files, or model ca
 ### When Completing a Task
 - [ ] PR is created, CI passes, and changes are squash-merged into `main`.
 - [ ] Review any task worktree using the [removal checklist](worktree-lifecycle.md#before-removal); remove it only when safe and authorized.
-- [ ] Diagnostic logs are moved to `.local/logs/archive/`.
+- [ ] Retain only diagnostic or validation evidence needed for the task; do not create duplicate reports.
 - [ ] Plan document is updated with final outcomes and moved to `.local/archive/`.
 - [ ] Confirm clean workspace: `git status` shows no untracked clutter.

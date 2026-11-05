@@ -121,7 +121,8 @@ agents_md = 'managed'
         self.assertEqual(self.cli('sync', '--check').returncode, 1)
         self.assertEqual(self.cli('sync').returncode, 0)
         self.assertEqual(self.cli('sync', '--check').returncode, 0)
-        self.assertIn('Additional policy.', (self.product / 'AGENTS.md').read_text())
+        self.assertIn('qortoo-harness/policies/shared-conventions.md', (self.product / 'AGENTS.md').read_text())
+        self.assertNotIn('Additional policy.', (self.product / 'AGENTS.md').read_text())
         self.assertIn('Keep task scope bounded.', (self.root / '.codex/agents/sample.toml').read_text())
 
     def test_invalid_agent_prevents_policy_write_and_escaping_outputs(self):
