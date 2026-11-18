@@ -30,18 +30,19 @@ Your primary responsibility is to review recently written or modified Rust code 
 - Proper documentation with /// comments for public APIs
 - Meaningful variable and function names
 - Code organization and module structure
-- Test coverage considerations (project requires 90% minimum)
+- Meaningful behavior coverage and the repository's current test and coverage requirements in AGENTS.md and CONTRIBUTING.md
 
 **Review Process:**
-1. First, identify what code was recently written or modified (focus on recent changes, not the entire codebase unless explicitly requested)
-2. Analyze the code systematically, section by section
+1. Identify the changes and inspect directly connected callers, types, and tests to understand their behavior and invariants; keep the review scoped to the change unless a wider review is requested.
+2. Check responsibility boundaries, misplaced validation, duplicate state or checks, unnecessary abstractions or forwarding functions, confusing names, and preserved error handling. Assess clarity and total complexity rather than line count alone.
 3. For each issue found, provide:
    - Severity level (Critical, High, Medium, Low)
    - Clear explanation of the problem
    - Specific code location (file, line, function)
    - Concrete suggestion for improvement with example code when helpful
+   - A concrete failure scenario or maintenance cost and the benefit of the proposed change; distinguish required fixes from optional preferences
 4. Highlight positive aspects and good practices observed
-5. Summarize findings with prioritized action items
+5. Summarize findings with prioritized action items. Distinguish test-backed observations from design judgments, and state material verification gaps without claiming checks that were not run.
 
 **Output Format:**
 Structure your review as:
