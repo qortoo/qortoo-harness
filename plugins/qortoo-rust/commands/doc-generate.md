@@ -1,11 +1,10 @@
 ---
-description: Run make doc to generate Rust API documentation and report all warnings or errors.
+description: Run make doc to generate Rust API documentation and report warnings or errors.
 ---
 
-Steps:
 1. Run `make doc` in the project root.
-2. If it succeeds, report the success and mention that documentation is available via `cargo doc --open`.
-3. If there are warnings, list each one with the file and line number so they can be fixed.
-4. If it fails, diagnose the root cause and suggest fixes.
-
-After running, also check for any public items that are missing doc comments by searching for `pub fn`, `pub struct`, `pub trait`, `pub enum` without a preceding `///` comment in `src/`. Report any undocumented public items found.
+2. Report whether it succeeded and list warnings or errors with file and line
+   when available. If it failed, identify the cause and suggest a fix.
+3. Use `qortoo-harness/policies/technical-writing.md` to check the generated public
+   API for missing documentation. Follow re-exports and feature gates so the
+   report reflects the public surface for the build.

@@ -33,11 +33,12 @@ The marketplace/plugin registration itself lives in the *developer's* global `~/
 ## What's here
 
 - `policies/shared-conventions.md` — canonical shared policy text, read directly by agents from each repository.
+- `policies/technical-writing.md` — shared standards for public API and repository documentation.
 - `AGENTS.md` — generated shared block plus harness-specific guidance.
 - `manifest.toml` — public repository catalog; see [manifest contracts](docs/repository-manifest.md) for schema, local overlays, path resolution, and remote identity.
 - `agents/bench-agent.md` — canonical benchmark developer role shared by both tools.
 - `.codex/agents/` — generated project-scoped Codex agent definitions.
-- `plugins/qortoo-shared/` — language-agnostic agents, commands, and the `grill-me` skill: `bench-agent` and `commit-message-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
+- `plugins/qortoo-shared/` — language-agnostic agents, commands, and the `grill-me` skill: `bench-agent`, `commit-message-writer`, and `technical-writer` agents, `/commit`, `/pr`, `/doc-new` commands.
 - `plugins/qortoo-rust/` — Rust-specific agents/commands: `rust-code-reviewer`, `qortoo-api-designer`, `documentation-reviewer` agents; `/pre-commit`, `/doc-generate`, `/doc-review` commands.
 
 ## Control plane CLI
@@ -152,7 +153,7 @@ Installed commands/agents are namespaced by plugin name, e.g. `/qortoo-shared:co
 
 ### Codex
 
-Codex loads [custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents) from project `.codex/agents/` or user `~/.codex/agents/`. The generated benchmark developer definition lives in this harness's `.codex/agents/`; Claude plugin registration does not register it with Codex.
+Codex loads [custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents) from project `.codex/agents/` or user `~/.codex/agents/`. The generated benchmark developer and technical writer definitions live in this harness's `.codex/agents/`. Codex loads them independently of Claude plugin registration.
 
 Start a new Codex session in qortoo-harness and request: "Use the bench-agent subagent to work on qortoo-bench. Run local smoke validation and report the changed scope." Include the actual task, setup status, and relevant plan path. Check the subagent activity to verify the selected role and model; file validation alone does not establish runtime discovery.
 
@@ -173,6 +174,19 @@ ln -s /absolute/path/to/qortoo-harness/plugins/qortoo-shared/skills/grill-me ~/.
 Start a new session and invoke `grill-me` for a guided, code-based discussion.
 
 No Codex configuration is added to qortoo-bench or the SDK repositories. Regenerate shared conventions using the [policy synchronization workflow](#shared-policy-synchronization) when they change. Only explicitly provided Codex adapters are supported; Claude commands and other agents are not automatically translated.
+
+## Technical writer
+
+Use `qortoo-shared:technical-writer` in Claude Code or `technical-writer` in
+a Codex session started from this harness. To use it in another Codex project,
+follow the user agent linking instructions above with `technical-writer.toml`.
+
+The [shared role](agents/technical-writer.md) and the Rust
+[documentation reviewer](plugins/qortoo-rust/agents/documentation-reviewer.md)
+use the same [technical writing guide](policies/technical-writing.md).
+The writer edits public API docs and repository guides. The reviewer reports
+findings for the requested scope. Edit the shared role and regenerate both
+adapters with `python3 scripts/sync_agents.py --agent technical-writer`.
 
 ## Bench agent
 

@@ -22,8 +22,8 @@
 
 ## Documentation Guidelines
 
-- Qortoo is unreleased: document current intended behavior and principles, without intermediate development history or migration notes unless the user requests history. Add compatibility/migration guidance only for released behavior.
-- Organize concept documentation under `./docs/`, with Markdown and diagrams grounded in the code. Use `/qortoo-shared:doc-new` to scaffold concepts.
+- Use [the technical writing guide](technical-writing.md) for public API and repository documentation. Use `/qortoo-shared:doc-new` to scaffold concept docs.
+- Qortoo is unreleased. Add compatibility or migration guidance when it applies to released behavior.
 
 ## Personal Plan Lifecycle
 
